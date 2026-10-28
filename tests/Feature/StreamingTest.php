@@ -55,8 +55,8 @@ class StreamingTest extends TestCase
     public function test_watch_fetches_fresh_api_data_for_each_request_and_keeps_it_out_of_storage(): void
     {
         Http::fake(['posts.example/*' => Http::response($this->payload())]);
-        $response = $this->get($this->signedWatchUrl())->assertOk()->assertSee('Series sumber')
-            ->assertSee('&lt;script&gt;Video title&lt;/script&gt;', false)->assertSee('iframe.mediadelivery.net/embed/')
+        $response = $this->get($this->signedWatchUrl())->assertOk()->assertDontSee('Series sumber')
+            ->assertDontSee('Video title')->assertDontSee('Dari tele-autoposts')->assertSee('iframe.mediadelivery.net/embed/')
             ->assertDontSee($this->token)->assertHeaderMissing('Set-Cookie')->assertHeader('Cache-Control', 'no-store, private');
         $this->assertStringNotContainsString('<script>Video title</script>', $response->getContent());
         $this->get($this->signedWatchUrl())->assertOk();
