@@ -186,4 +186,45 @@ class StreamingTest extends TestCase
         $this->get($this->signedWatchUrl())->assertStatus(503);
         Http::assertNothingSent();
     }
+
+    public function test_the_ad_below_the_player_uses_the_latest_api_url_and_opens_a_new_tab(): void
+    {
+        $first = $this->payload();
+        $first['data']['ad_url'] = 'https://advertiser.example/promo?campaign=mobile&source=stream';
+        $second = $first;
+        $second['data']['ad_url'] = 'https://advertiser.example/new-promo';
+        Http::fake(['posts.example/*' => Http::sequence()->push($first)->push($second)]);
+        $this->get($this->signedWatchUrl())->assertOk()->assertSeeInOrder(['<iframe', 'class="ad-slot"'], false)
+            ->assertSee('href="'.e($first['data']['ad_url']).'"', false)->assertSee('target="_blank"', false)
+            ->assertSee('rel="sponsored noopener noreferrer"', false)
+            ->assertSee('src="/ads.webp" width="874" height="1280"', false)
+            ->assertHeaderMissing('Set-Cookie')->assertDontSee($this->token);
+        $this->get($this->signedWatchUrl())->assertOk()->assertSee($second['data']['ad_url'])
+            ->assertDontSee($first['data']['ad_url']);
+        Http::assertSentCount(2);
+        $this->assertSame([], Storage::disk('local')->allFiles());
+    }
+
+    public function test_missing_or_unsafe_ad_urls_leave_the_image_unlinked_without_breaking_playback(): void
+    {
+        $payload = $this->payload();
+        $sequence = Http::sequence()->push($payload);
+        foreach ([null, 'javascript:alert(1)', '//attacker.example', 'https://user:secret@example.com', ['unexpected']] as $url) {
+            $payload['data']['ad_url'] = $url;
+            $sequence->push($payload);
+        }
+        Http::fake(['posts.example/*' => $sequence]);
+        foreach (range(1, 6) as $request) {
+            $this->get($this->signedWatchUrl())->assertOk()->assertSee('<iframe', false)
+                ->assertSee('src="/ads.webp"', false)->assertDontSee('target="_blank"', false);
+        }
+        $this->assertSame([], Storage::disk('local')->allFiles());
+    }
+
+    public function test_the_ad_image_is_public_without_database_sessions_or_api_requests(): void
+    {
+        $response = $this->get('/ads.webp')->assertOk()->assertHeader('Content-Type', 'image/webp')->assertHeaderMissing('Set-Cookie');
+        $this->assertSame(realpath(storage_path('app/public/ads.webp')), $response->baseResponse->getFile()->getRealPath());
+        Http::assertNothingSent();
+    }
 }

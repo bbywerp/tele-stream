@@ -6,7 +6,7 @@
                     allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
                     referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
             </div>
-            <x-ad-slot />
+            <x-ad-slot :url="$video['ad_url'] ?? null" />
         </div>
     @else
         <div class="stream-notice" role="status">

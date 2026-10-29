@@ -60,6 +60,9 @@ class AutopostApi
             throw new RuntimeException('Data streaming tidak valid pada field: '.implode(', ', array_keys($validation->failed())).'.');
         }
         $data = $validation->validated();
+        // Advertising is optional; invalid ad settings must not stop video playback.
+        $adUrl = $response->json('data.ad_url');
+        $data['ad_url'] = is_string($adUrl) && strlen($adUrl) <= 2048 && HttpUrl::valid($adUrl) ? $adUrl : null;
         $player = parse_url($data['player_url']);
         if (($player['scheme'] ?? '') !== 'https'
             || ! in_array($player['host'] ?? '', ['iframe.mediadelivery.net', 'player.mediadelivery.net'], true)

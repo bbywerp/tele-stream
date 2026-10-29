@@ -1,4 +1,10 @@
+@props(['url' => null])
 <aside class="ad-slot" aria-label="Iklan">
-    {{-- Tempatkan kode iklan responsif di dalam slot ini. --}}
-    <span class="ad-slot-label">Iklan</span>
+    @if ($url)
+        <a href="{{ $url }}" target="_blank" rel="sponsored noopener noreferrer" aria-label="Iklan (buka di tab baru)">
+    @endif
+    <img src="{{ route('ads.image', [], false) }}" width="874" height="1280" alt="Iklan" loading="lazy" decoding="async">
+    @if ($url)
+        </a>
+    @endif
 </aside>
